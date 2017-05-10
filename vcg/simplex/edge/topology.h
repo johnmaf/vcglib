@@ -24,23 +24,18 @@
 #ifndef _VCG_EDGE_TOPOLOGY
 #define _VCG_EDGE_TOPOLOGY
 
-#include <vector>
-#include <algorithm>
-#include <vcg/simplex/edge/pos.h>
-
 namespace vcg {
 namespace edge {
 /** \addtogroup edge */
-/*@{*/template <class EdgeType>
-inline bool IsEdgeManifoldFF( EdgeType const & e, const int j )
-{
-  assert(e.cFFp(j) != 0); // never try to use this on uncomputed topology
+/*@{*/
 
-  if(EdgeType::HasFFAdjacency())
-    return ( e.cFFp(j) == &e || &e == e.cFFp(j)->cFFp(e.cFFi(j)) );
-  else
-    return true;
+
+template <class EdgeType>
+inline bool IsEdgeManifold( EdgeType const & e, const int j )
+{
+  return ( e.cEEp(j) == &e || &e == e.cEEp(j)->cEEp(e.cEEi(j)) );
 }
+
 
 /** Return a boolean that indicate if the j-th edge of the face is a border.
   @param j Index of the edge
@@ -57,7 +52,7 @@ inline bool IsEdgeBorder(EdgeType const & e,  const int j )
 }
 
 template <class VertexType>
-void VVStarVE(VertexType* vp, std::vector<VertexType *> &starVec)
+void VVStarVE(const VertexType* vp, std::vector<VertexType *> &starVec)
 {
   starVec.clear();
   edge::VEIterator<typename VertexType::EdgeType> vei(vp);

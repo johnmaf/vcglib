@@ -23,9 +23,6 @@
 #ifndef __VCG_TRI_UPDATE_SELECTION
 #define __VCG_TRI_UPDATE_SELECTION
 
-#include <queue>
-#include <vcg/complex/algorithms/update/flag.h>
-
 namespace vcg {
 namespace tri {
 /// \ingroup trimesh
@@ -376,6 +373,22 @@ static size_t FaceFromVertexLoose(MeshType &m, bool preserveSelection=false)
     }
   return selCnt;
 }
+/// \brief This function dilate the face selection by simply first selecting all the vertices touched by the faces and then all the faces touched by these vertices 
+/// Note: it destroys the vertex selection. 
+static size_t FaceDilate(MeshType &m)
+{
+  tri::UpdateSelection<MeshType>::VertexFromFaceLoose(m);
+  return tri::UpdateSelection<MeshType>::FaceFromVertexLoose(m);  
+}
+
+/// \brief This function erode the face selection by simply first selecting only the vertices completely surrounded by face and then the only faces with all the selected vertices 
+/// Note: it destroys the vertex selection. 
+static size_t FaceErode(MeshType &m)
+{
+  tri::UpdateSelection<MeshType>::VertexFromFaceStrict(m);
+  return tri::UpdateSelection<MeshType>::FaceFromVertexStrict(m);  
+}
+
 
 /// \brief This function select the vertices with the border flag set
 static size_t VertexFromBorderFlag(MeshType &m, bool preserveSelection=false)
@@ -441,9 +454,8 @@ static size_t FaceOutOfRangeEdge(MeshType &m, ScalarType MinEdgeThr, ScalarType 
 }
 
 /// \brief This function expand current selection to cover the whole connected component.
-static size_t FaceConnectedFF(MeshType &m, bool preserveSelection=false)
+static size_t FaceConnectedFF(MeshType &m)
 {
-  if(!preserveSelection) FaceClear(m);
   // it also assumes that the FF adjacency is well computed.
   RequireFFAdjacency(m);
   UpdateFlags<MeshType>::FaceClearV(m);
@@ -510,7 +522,7 @@ static size_t VertexFromQualityRange(MeshType &m,float minq, float maxq, bool pr
 }
 
 /// \brief Select the vertices contained in the specified Box
-static int VertexInBox( MeshType & m, const Box3Type &bb, bool preserveSelection=false)
+static size_t VertexInBox( MeshType & m, const Box3Type &bb, bool preserveSelection=false)
 {
   if(!preserveSelection) VertexClear(m);
   int selCnt=0;
@@ -524,10 +536,38 @@ static int VertexInBox( MeshType & m, const Box3Type &bb, bool preserveSelection
   return selCnt;
 }
 
+/// \brief Select the border vertices that form a corner along the border
+/// with an angle that is below a certain threshold (e.g. with 90 will select all the acute angles)
+/// It assumes that the Per-Vertex border Flag has been set.
+static size_t VertexCornerBorder(MeshType &m, ScalarType angleRad, bool preserveSelection=false)
+{
+  if(!preserveSelection) VertexClear(m);
+  SimpleTempData<typename MeshType::VertContainer, ScalarType > angleSumH(m.vert,0);
+  int selCnt=0;
+  for(auto vi=m.vert.begin();vi!=m.vert.end();++vi) if(!(*vi).IsD())
+    angleSumH[vi]=0;
+  
+  for(auto fi=m.face.begin();fi!=m.face.end();++fi) if(!(*fi).IsD())
+  {
+    for(int i=0;i<(*fi).VN();++i)
+      angleSumH[fi->V(i)] += face::WedgeAngleRad(*fi,i);
+  }
+  
+  for(auto vi=m.vert.begin();vi!=m.vert.end();++vi) if(!(*vi).IsD())
+  {
+    if(angleSumH[vi]<angleRad && vi->IsB())
+    {
+      (*vi).SetS();
+      ++selCnt;
+    }
+  }
+  return selCnt;
+}
+
 
 void VertexNonManifoldEdges(MeshType &m, bool preserveSelection=false)
 {
-  assert(HasFFTopology(m));
+  tri::RequireFFAdjacency(m);
 
   if(!preserveSelection) VertexClear(m);
   for (FaceIterator fi = m.face.begin(); fi != m.face.end(); ++fi)	if (!fi->IsD())

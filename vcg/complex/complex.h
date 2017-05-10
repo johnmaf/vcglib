@@ -27,9 +27,12 @@
 
 #include <assert.h>
 #include <string>
+#include <cstring>
+#include <ctime>
 #include <vector>
 #include <set>
 #include <stack>
+#include <queue>
 #include <algorithm>
 #include <map>
 #include <iostream>
@@ -42,8 +45,15 @@
 #include <vcg/complex/used_types.h>
 #include <vcg/complex/base.h>
 #include <vcg/complex/allocate.h>
+#include <vcg/simplex/face/pos.h>
+#include <vcg/simplex/face/topology.h>
+#include <vcg/simplex/edge/pos.h>
+#include <vcg/simplex/edge/topology.h>
 #include <vcg/complex/algorithms/update/flag.h>
 #include <vcg/complex/algorithms/update/selection.h>
+#include <vcg/complex/algorithms/update/topology.h>
+#include <vcg/complex/algorithms/update/normal.h>
+#include <vcg/complex/algorithms/update/bounding.h>
 #include <vcg/complex/algorithms/mesh_assert.h>
 #include <vcg/complex/append.h>
 
